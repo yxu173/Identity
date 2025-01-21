@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Globalization;
+using System.Text;
 using Application.Abstractions.Authentication;
 using Application.Abstractions.Data;
 using Domain.Users;
@@ -101,6 +102,17 @@ public static class DependencyInjection
                  googleOptions.CallbackPath = "/users/GoogleResponse";
                  googleOptions.SaveTokens = true;
              });
+        services.AddTransient<IEmailSender, EmailSender>(provider =>
+        {
+            IConfiguration configuration = provider.GetRequiredService<IConfiguration>();
+            IConfigurationSection smtpSettings = configuration.GetSection("SmtpSettings");
+            return new EmailSender(
+                smtpSettings["Server"]!,
+                int.Parse(smtpSettings["Port"]!, CultureInfo.InvariantCulture),
+                smtpSettings["Username"]!,
+                smtpSettings["Password"]!
+            );
+        });
         services.AddHttpContextAccessor();
         services.AddScoped<IUserContext, UserContext>();
         services.AddSingleton<ITokenProvider, TokenProvider>();

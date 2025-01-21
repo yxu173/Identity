@@ -5,6 +5,7 @@
   <!--.NET 9 packages. Most of them will work on .NET 8. If you need to, make the updates here individually.-->
   <ItemGroup>
     <!-- Static code analysis -->
+    <PackageVersion Include="MailKit" Version="4.9.0" />
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.Google" Version="9.0.1" />
     <PackageVersion Include="Microsoft.AspNetCore.Authorization" Version="9.0.1" />
     <PackageVersion Include="Microsoft.AspNetCore.Identity" Version="2.2.0" />
@@ -14,6 +15,8 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageVersion>
+    <PackageVersion Include="MimeKit" Version="4.9.0" />
+    <PackageVersion Include="SendGrid" Version="9.29.3" />
     <PackageVersion Include="SonarAnalyzer.CSharp" Version="10.5.0.109200" />
     <!-- SharedKernel -->
     <PackageVersion Include="MediatR.Contracts" Version="2.0.1" />
