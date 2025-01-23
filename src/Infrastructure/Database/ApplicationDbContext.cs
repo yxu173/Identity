@@ -1,4 +1,5 @@
 ﻿using Application.Abstractions.Data;
+using Domain.Roles;
 using Domain.Users;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -7,9 +8,8 @@ using Microsoft.EntityFrameworkCore;
 namespace Infrastructure.Database;
 
 public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
-    : IdentityDbContext<User,IdentityRole<Guid>,Guid>(options), IApplicationDbContext
+    : IdentityDbContext<User,Role,Guid>(options), IApplicationDbContext
 {
-//    public DbSet<User> Users { get; set; }
 
 
     protected override void OnModelCreating(ModelBuilder builder)

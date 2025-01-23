@@ -1,14 +1,21 @@
 ﻿using System.Globalization;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using System.Security.Claims;
 using System.Text;
+using System.Text.Json;
 using Application.Abstractions.Authentication;
 using Application.Abstractions.Data;
+using Domain.Roles;
 using Domain.Users;
 using Infrastructure.Authentication;
 using Infrastructure.Authorization;
 using Infrastructure.Database;
 using Infrastructure.Time;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -63,27 +70,30 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        services.AddIdentity<User, IdentityRole<Guid>>()
+        services.AddIdentity<User, Role>()
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
         services.Configure<IdentityOptions>(options =>
-           {
-               // Password settings.
-               options.Password.RequireDigit = true;
-               options.Password.RequireLowercase = true;
-               options.Password.RequireNonAlphanumeric = true;
-               options.Password.RequireUppercase = true;
-               options.Password.RequiredLength = 6;
-               options.Password.RequiredUniqueChars = 1;
+        {
+            options.Password.RequireDigit = true;
+            options.Password.RequireLowercase = true;
+            options.Password.RequireNonAlphanumeric = true;
+            options.Password.RequireUppercase = true;
+            options.Password.RequiredLength = 6;
+            options.Password.RequiredUniqueChars = 1;
 
-               // Lockout settings.
-               options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
-               options.Lockout.MaxFailedAccessAttempts = 5;
-               options.Lockout.AllowedForNewUsers = true;
+            options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
+            options.Lockout.MaxFailedAccessAttempts = 5;
+            options.Lockout.AllowedForNewUsers = true;
+        });
 
-           });
-
-        services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+        services.AddAuthentication(options =>
+        {
+            options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultSignInScheme = JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultChallengeScheme = "GitHub";
+        })
+        .AddCookie("cookie")
             .AddJwtBearer(o =>
             {
                 o.RequireHttpsMetadata = false;
@@ -96,12 +106,38 @@ public static class DependencyInjection
                 };
             })
             .AddGoogle(googleOptions =>
-             {
-                 googleOptions.ClientId = configuration["Authentication:Google:ClientId"]!;
-                 googleOptions.ClientSecret = configuration["Authentication:Google:ClientSecret"]!;
-                 googleOptions.CallbackPath = "/users/GoogleResponse";
-                 googleOptions.SaveTokens = true;
-             });
+            {
+                googleOptions.ClientId = configuration["Authentication:Google:ClientId"]!;
+                googleOptions.ClientSecret = configuration["Authentication:Google:ClientSecret"]!;
+                googleOptions.CallbackPath = "/users/GoogleResponse";
+                googleOptions.SaveTokens = true;
+            }).AddOAuth("GitHub", options =>
+            {
+                options.SignInScheme = "cookie";
+                options.ClientId = configuration["Authentication:Github:ClientId"]!;
+                options.ClientSecret = configuration["Authentication:Github:ClientSecret"]!;
+                options.CallbackPath = "/oauth/github";
+
+                options.AuthorizationEndpoint = "https://github.com/login/oauth/authorize";
+                options.TokenEndpoint = "https://github.com/login/oauth/access_token";
+                options.UserInformationEndpoint = "https://api.github.com/user";
+
+                options.ClaimActions.MapJsonKey(ClaimTypes.NameIdentifier, "id");
+                options.ClaimActions.MapJsonKey(ClaimTypes.Name, "login");
+                options.ClaimActions.MapJsonKey(ClaimTypes.Email, "email");
+
+                options.SaveTokens = true;
+
+                options.Events.OnCreatingTicket = async context =>
+                {
+                    using var request = new HttpRequestMessage(HttpMethod.Get, context.Options.UserInformationEndpoint);
+                    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", context.AccessToken);
+                    using HttpResponseMessage response = await context.Backchannel.SendAsync(request);
+                    JsonElement user = await response.Content.ReadFromJsonAsync<JsonElement>();
+                    context.RunClaimActions(user);
+                };
+            });
+
         services.AddTransient<IEmailSender, EmailSender>(provider =>
         {
             IConfiguration configuration = provider.GetRequiredService<IConfiguration>();

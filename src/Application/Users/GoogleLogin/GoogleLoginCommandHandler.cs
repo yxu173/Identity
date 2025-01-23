@@ -2,8 +2,6 @@
 using Application.Abstractions.Messaging;
 using Domain.Users;
 using SharedKernel;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Http;
 
 namespace Application.Users.GoogleLogin;
 

@@ -1,5 +1,6 @@
 using Application.Abstractions.Authentication;
 using MailKit.Net.Smtp;
+using MailKit.Security;
 using MimeKit;
 
 namespace Infrastructure.Authentication;
@@ -34,7 +35,7 @@ public class EmailSender : IEmailSender
 
         // Send the email
         using var client = new SmtpClient();
-        await client.ConnectAsync(_smtpServer, _smtpPort, true);
+        await client.ConnectAsync(_smtpServer, _smtpPort, SecureSocketOptions.StartTls);
         await client.AuthenticateAsync(_smtpUsername, _smtpPassword);
         await client.SendAsync(emailMessage);
         await client.DisconnectAsync(true);

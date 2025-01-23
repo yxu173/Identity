@@ -20,9 +20,12 @@ public sealed class ForgetPasswordCommandHandler(UserManager<User> userManager, 
 
         string token = await userManager.GeneratePasswordResetTokenAsync(user);
 
-        string resetLink = $"https://yourapp.com/reset-password?token={WebUtility.UrlEncode(token)}&email={WebUtility.UrlEncode(request.Email)}";
+        string resetLink =
+            $"https://localhost:5000/reset-password?token={WebUtility
+                .UrlEncode(token)}&email={WebUtility.UrlEncode(request.Email)}";
 
-        await emailSender.SendEmailAsync(request.Email, "Reset Your Password", $"Please reset your password by clicking here: {resetLink}");
-        return Result<Guid>.Success(user.Id);
+        await emailSender.SendEmailAsync(request.Email, "Reset Your Password",
+            $"Please reset your password by clicking here: {resetLink}");
+        return Result.Success(user.Id);
     }
 }
